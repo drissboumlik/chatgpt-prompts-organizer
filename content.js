@@ -132,7 +132,7 @@ function observeSidebarPrompts() {
                     group.prompts.some(prompt => prompt.name === promptText)
                 );
                 if (group) {
-                    item.style.backgroundColor = `rgb(from ${group.color} r g b / 0.5)`
+                    item.style.backgroundColor = `rgb(from ${group.color} r g b / 0.3)`
                 }
             });
             item.appendChild(folderBtn);
@@ -368,18 +368,22 @@ function showFolderModal(folderName = '', color = '#262626') {
     modal.id = 'db-prompt-modal';
     
     const createFolderBtn = document.createElement('button');
-    createFolderBtn.textContent = 'Create';
+    createFolderBtn.textContent = 'Submit';
+    createFolderBtn.className = 'folder-form-submit-btn';
     createFolderBtn.addEventListener('click', () => {
         const oldValue = document.getElementById('prompt-folder-input').getAttribute('data-old-value');
         const name = document.getElementById('prompt-folder-input').value.trim();
         const color = document.getElementById('prompt-folder-color').value.trim();
-        if (name) {
-            addFolderIfNotExists(name, color, oldValue)
-            document.body.removeChild(overlay);
+        if (name === null || name === undefined || name === '') {
+            alert('Please enter a folder name.');
+            return;
         }
+        addFolderIfNotExists(name, color, oldValue)
+        document.body.removeChild(overlay);
     });
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
+    closeButton.className = 'folder-form-close-btn';
     closeButton.addEventListener('click', () => {
         overlay.remove();
     });
