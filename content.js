@@ -10,13 +10,48 @@ function injectStyles() {
 }
 
 function getFoldersOrDefault(foldersWrapper) {
-    return (Array.isArray(foldersWrapper?.folders)
-            ? foldersWrapper
-            : { hidden: true, folders: [] });
+    const normalized = (Array.isArray(foldersWrapper?.folders)
+        ? foldersWrapper
+        : { hidden: true, folders: [] });
+
+    normalized.hidden = Boolean(normalized.hidden);
+    normalized.folders = (Array.isArray(normalized.folders) ? normalized.folders : [])
+        .map((folder, index) => ({
+            folderName: folder?.folderName || `Folder ${index + 1}`,
+            color: folder?.color || '#262626',
+            hidden: Boolean(folder?.hidden),
+            prompts: Array.isArray(folder?.prompts) ? folder.prompts : [],
+            order: Number.isFinite(Number(folder?.order)) ? Number(folder.order) : index,
+        }))
+        .sort((a, b) => Number(a.order) - Number(b.order))
+        .map((folder, index) => ({ ...folder, order: index }));
+
+    return normalized;
+}
+
+function moveFolderToOrder(folders, folderName, newOrderIndex) {
+    const list = [...folders.folders];
+    const sourceIndex = list.findIndex(folder => folder.folderName === folderName);
+
+    if (sourceIndex === -1) {
+        return folders;
+    }
+
+    const [folder] = list.splice(sourceIndex, 1);
+    const targetIndex = Math.max(0, Math.min(list.length, Number(newOrderIndex) || 0));
+    list.splice(targetIndex, 0, folder);
+
+    folders.folders = list.map((item, index) => ({
+        ...item,
+        order: index,
+    }));
+
+    return folders;
 }
 
 function syncFolders(folders) {
-    chrome.storage.local.set({ folders }, () => {
+    const normalizedFolders = getFoldersOrDefault(folders);
+    chrome.storage.local.set({ folders: normalizedFolders }, () => {
         renderFolders();
     });
 }
@@ -71,7 +106,7 @@ function showFolderPicker(folders, callback) {
     const addButton = document.createElement('button');
     addButton.textContent = 'Submit';
     addButton.addEventListener('click', (e) => {
-         document.querySelectorAll('.db-folder-list-modal input[type="checkbox"]:checked').forEach((checkbox) => {
+        document.querySelectorAll('.db-folder-list-modal input[type="checkbox"]:checked').forEach((checkbox) => {
             const folderName = checkbox.getAttribute('data-folder-name');
             // Add prompt to selected folder
             callback(folderName);
@@ -219,20 +254,24 @@ function renderFolders() {
 
                 const title = document.createElement('span');
                 title.className = "pointer w-100"
-                title.textContent = folder.folderName;
+                title.textContent = `${folder.order + 1}- ${folder.folderName}`;
+                title.setAttribute('data-folderName', folder.folderName)
                 const editFolderNameBtn = document.createElement('span');
                 editFolderNameBtn.className = "pointer"
                 editFolderNameBtn.textContent = '✏️';
                 editFolderNameBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const folderName = e.target.parentNode.parentNode.querySelector('span')?.textContent.trim();
+                    const folderName = e.target.parentNode.parentNode.querySelector('span')?.getAttribute('data-folderName').trim();
                     if (! folderName) {
                         return;
                     }
                     chrome.storage.local.get(['folders'], (result) => {
                         let folders = getFoldersOrDefault(result?.folders);
                         const folder = folders.folders.find(f => f.folderName === folderName);
-                        showFolderModal(folder.folderName, folder.color, folderName);
+                        if (! folder) {
+                            return;
+                        }
+                        showFolderModal(folder.folderName, folder.color, folderName, folder.order);
                     });
                 });
                 const trashIcon = document.createElement('span');
@@ -328,25 +367,61 @@ function renderFolders() {
 }
 
 
-function addFolderIfNotExists(folderName, color, oldValue = null) {
+function addFolderIfNotExists(folderName, color, oldValue = null, order = null) {
     chrome.storage.local.get(['folders'], (result) => {
         let folders = getFoldersOrDefault(result?.folders);
+        const trimmedName = folderName.trim();
+        const maxFolderCount = folders.folders.length + (oldValue ? 0 : 1);
+        const normalizedOrder = Number.isFinite(Number(order)) ? Number(order) : (oldValue ? 0 : folders.folders.length);
+
+        if (! trimmedName) {
+            alert('Please enter a folder name.');
+            return;
+        }
+
+        if (normalizedOrder < 0 || normalizedOrder >= maxFolderCount) {
+            alert(`Please choose an order between 1 and ${maxFolderCount}.`);
+            return;
+        }
+
         if (oldValue) {
-            folders.folders = folders.folders.map(f => {
-                if (f.folderName === oldValue) {
-                    f.folderName = folderName;
-                    f.color = color;
-                }
-                return f;
-            });
+            const duplicateFolder = folders.folders.find(f => f.folderName === trimmedName && f.folderName !== oldValue);
+            if (duplicateFolder) {
+                alert('A folder with that name already exists.');
+                return;
+            }
+
+            const originalFolder = folders.folders.find(f => f.folderName === oldValue);
+            if (! originalFolder) {
+                return;
+            }
+
+            const updatedFolder = {
+                ...originalFolder,
+                folderName: trimmedName,
+                color: color || originalFolder.color || '#262626',
+            };
+
+            const filteredFolders = folders.folders.filter(f => f.folderName !== oldValue);
+            const nextOrderIndex = normalizedOrder;
+            const folderList = [...filteredFolders];
+            folderList.splice(Math.max(0, Math.min(folderList.length, nextOrderIndex)), 0, updatedFolder);
+            folders.folders = folderList.map((folder, index) => ({ ...folder, order: index }));
             syncFolders(folders);
             return;
         }
 
-        if (! folders.folders.find(f => f.folderName === folderName)) {
-            folders.folders.push({ folderName, color, hidden: true, prompts: [] });
-            syncFolders(folders);
+        if (folders.folders.find(f => f.folderName === trimmedName)) {
+            alert('A folder with that name already exists.');
+            return;
         }
+
+        const nextOrderIndex = normalizedOrder;
+        const folderList = [...folders.folders];
+        const newFolder = { folderName: trimmedName, color: color || '#262626', hidden: true, prompts: [], order: nextOrderIndex };
+        folderList.splice(Math.max(0, Math.min(folderList.length, nextOrderIndex)), 0, newFolder);
+        folders.folders = folderList.map((folder, index) => ({ ...folder, order: index }));
+        syncFolders(folders);
     });
 }
 
@@ -359,65 +434,96 @@ function addPromptToFolder(folderName, prompt, folders) {
     return folders;
 }
 
-function showFolderModal(folderName = '', color = '#262626') {
-    // Create modal elements
-    const overlay = document.createElement('div');
-    overlay.id = 'db-prompt-modal-overlay';
+function showFolderModal(folderName = '', color = '#262626', oldValue = '', order = null) {
+    chrome.storage.local.get(['folders'], (result) => {
+        const folders = getFoldersOrDefault(result?.folders);
+        const validFolderCount = Math.max(1, oldValue ? folders.folders.length : folders.folders.length + 1);
+        const defaultOrder = Number.isFinite(Number(order)) ? Number(order) + 1 : validFolderCount;
 
-    const modal = document.createElement('div');
-    modal.id = 'db-prompt-modal';
-    
-    const createFolderBtn = document.createElement('button');
-    createFolderBtn.textContent = 'Submit';
-    createFolderBtn.className = 'folder-form-submit-btn';
-    createFolderBtn.addEventListener('click', () => {
-        const oldValue = document.getElementById('prompt-folder-input').getAttribute('data-old-value');
-        const name = document.getElementById('prompt-folder-input').value.trim();
-        const color = document.getElementById('prompt-folder-color').value.trim();
-        if (name === null || name === undefined || name === '') {
-            alert('Please enter a folder name.');
-            return;
-        }
-        addFolderIfNotExists(name, color, oldValue)
-        document.body.removeChild(overlay);
-    });
-    const closeButton = document.createElement('button');
-    closeButton.textContent = 'Close';
-    closeButton.className = 'folder-form-close-btn';
-    closeButton.addEventListener('click', () => {
-        overlay.remove();
-    });
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.className = 'db-folder-list-modal-buttons';
-    buttonsContainer.appendChild(closeButton);
-    buttonsContainer.appendChild(createFolderBtn);
+        const overlay = document.createElement('div');
+        overlay.id = 'db-prompt-modal-overlay';
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Folder name';
-    input.id = 'prompt-folder-input';
-    input.value = folderName;
-    input.setAttribute('data-old-value', folderName);
-    input.autofocus = true;
-    
-    const colorInput = document.createElement('input');
-    colorInput.type = 'color';
-    colorInput.id = 'prompt-folder-color';
-    colorInput.value = color;
-    modal.appendChild(input);
-    modal.appendChild(colorInput);
-    modal.appendChild(buttonsContainer);
+        const modal = document.createElement('div');
+        modal.id = 'db-prompt-modal';
+        
+        const createFolderBtn = document.createElement('button');
+        createFolderBtn.textContent = 'Submit';
+        createFolderBtn.className = 'folder-form-submit-btn';
+        createFolderBtn.addEventListener('click', () => {
+            const currentOldValue = document.getElementById('prompt-folder-input').getAttribute('data-old-value');
+            const name = document.getElementById('prompt-folder-input').value.trim();
+            const colorValue = document.getElementById('prompt-folder-color').value.trim();
+            const orderValue = Number(document.getElementById('prompt-folder-order').value);
 
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    input.focus();
+            if (! name) {
+                alert('Please enter a folder name.');
+                return;
+            }
 
-    
+            if (! Number.isInteger(orderValue) || orderValue < 1 || orderValue > validFolderCount) {
+                alert(`Please choose an order between 1 and ${validFolderCount}.`);
+                return;
+            }
 
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
+            addFolderIfNotExists(name, colorValue, currentOldValue || null, orderValue - 1);
             document.body.removeChild(overlay);
-        }
+        });
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Close';
+        closeButton.className = 'folder-form-close-btn';
+        closeButton.addEventListener('click', () => {
+            overlay.remove();
+        });
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'db-folder-list-modal-buttons';
+        buttonsContainer.appendChild(closeButton);
+        buttonsContainer.appendChild(createFolderBtn);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Folder name';
+        input.id = 'prompt-folder-input';
+        input.value = folderName;
+        input.setAttribute('data-old-value', oldValue || folderName);
+        input.autofocus = true;
+
+        const orderInput = document.createElement('input');
+        orderInput.type = 'number';
+        orderInput.id = 'prompt-folder-order';
+        orderInput.style.backgroundColor = '#262626';
+        orderInput.min = '1';
+        orderInput.max = String(validFolderCount);
+        orderInput.value = String(defaultOrder);
+        orderInput.placeholder = 'Order';
+        orderInput.addEventListener('input', () => {
+            const rawValue = Number(orderInput.value);
+            if (! Number.isFinite(rawValue)) {
+                orderInput.value = '1';
+                return;
+            }
+            const clampedValue = Math.min(Math.max(rawValue, 1), validFolderCount);
+            orderInput.value = String(clampedValue);
+        });
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.id = 'prompt-folder-color';
+        colorInput.value = color;
+
+        modal.appendChild(input);
+        modal.appendChild(orderInput);
+        modal.appendChild(colorInput);
+        modal.appendChild(buttonsContainer);
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        input.focus();
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+            }
+        });
     });
 }
 
