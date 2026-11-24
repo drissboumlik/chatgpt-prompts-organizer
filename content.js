@@ -56,6 +56,38 @@ function createPlusIcon() {
     return icon;
 }
 
+function createActionIcon(type) {
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.classList.add('db-action-icon');
+
+    const paths = type === 'edit'
+        ? [
+            'M12 20h9',
+            'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'
+        ]
+        : [
+            'M3 6h18',
+            'M8 6V4h8v2',
+            'M19 6l-1 14H6L5 6',
+            'M10 10v6M14 10v6'
+        ];
+
+    paths.forEach((pathData) => {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('stroke', 'currentColor');
+        path.setAttribute('stroke-width', '1.8');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        icon.appendChild(path);
+    });
+
+    return icon;
+}
+
 function moveFolderToOrder(folders, folderName, newOrderIndex) {
     const list = [...folders.folders];
     const sourceIndex = list.findIndex(folder => folder.folderName === folderName);
@@ -332,12 +364,15 @@ function renderFolders() {
                 );
                 promptCount.title = `${folder.prompts.length} ${folder.prompts.length === 1 ? 'prompt' : 'prompts'}`;
                 title.append(folderName, promptCount);
-                const editFolderNameBtn = document.createElement('span');
-                editFolderNameBtn.className = "pointer"
-                editFolderNameBtn.textContent = '✏️';
+                const editFolderNameBtn = document.createElement('button');
+                editFolderNameBtn.type = 'button';
+                editFolderNameBtn.className = 'pointer db-action-button';
+                editFolderNameBtn.title = 'Edit folder';
+                editFolderNameBtn.setAttribute('aria-label', `Edit folder ${folder.folderName}`);
+                editFolderNameBtn.appendChild(createActionIcon('edit'));
                 editFolderNameBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const folderName = e.target.parentNode.parentNode.querySelector('span')?.getAttribute('data-folderName').trim();
+                    const folderName = folder.folderName?.trim();
                     if (! folderName) {
                         return;
                     }
@@ -350,9 +385,12 @@ function renderFolders() {
                         showFolderModal(folder.folderName, folder.color, folderName, folder.order);
                     });
                 });
-                const trashIcon = document.createElement('span');
-                trashIcon.className = "pointer"
-                trashIcon.textContent = '🗑️';
+                const trashIcon = document.createElement('button');
+                trashIcon.type = 'button';
+                trashIcon.className = 'pointer db-action-button db-delete-button';
+                trashIcon.title = 'Delete folder';
+                trashIcon.setAttribute('aria-label', `Delete folder ${folder.folderName}`);
+                trashIcon.appendChild(createActionIcon('delete'));
                 trashIcon.addEventListener('click', (e) => {
                     e.stopPropagation();
                     if (! confirm(`Are you sure you want to delete the folder "${folder.folderName}"? This action cannot be undone.`)) {
@@ -383,9 +421,12 @@ function renderFolders() {
                     link.href = prompt.link;
                     link.textContent = prompt.name;
                     link.className = 'db-prompt-item-link';
-                    const trashIcon = document.createElement('span');
-                    trashIcon.className = 'pointer';
-                    trashIcon.textContent = '🗑️';
+                    const trashIcon = document.createElement('button');
+                    trashIcon.type = 'button';
+                    trashIcon.className = 'pointer db-action-button db-delete-button';
+                    trashIcon.title = 'Remove prompt';
+                    trashIcon.setAttribute('aria-label', `Remove prompt ${prompt.name}`);
+                    trashIcon.appendChild(createActionIcon('delete'));
                     trashIcon.addEventListener('click', (e) => {
                         e.stopPropagation();
                         

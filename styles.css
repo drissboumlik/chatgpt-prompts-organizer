@@ -1,10 +1,11 @@
-
 .hidden {
     display: none !important;
 }
+
 .pointer {
     cursor: pointer !important;
 }
+
 .w-100 {
     width: 100% !important;
 }
@@ -20,13 +21,15 @@
     color: #f5f7f6;
     font-family: inherit;
     transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
     &.visible {
         transform: translate(0%, -50%);
     }
-    
+
     .db-toggle-folder-wrapper {
         position: absolute;
         cursor: pointer;
+
         &:before {
             content: 'Folders';
             transform: rotate(-90deg);
@@ -45,7 +48,7 @@
             letter-spacing: 0.04em;
         }
     }
-    
+
     .db-folder-wrapper-container {
         display: flex;
         flex-direction: column;
@@ -53,8 +56,8 @@
         box-sizing: border-box;
         max-height: min(80vh, 700px);
         border: 1px solid rgb(255 255 255 / 10%);
-        border-radius: 16px;
-        padding: 12px;
+        border-radius: 5px;
+        padding: 6px;
         position: relative;
         background: rgb(25 30 28 / 96%);
         backdrop-filter: blur(16px);
@@ -77,36 +80,40 @@
 #db-folders-container {
     max-height: min(60vh, 500px);
     overflow-y: auto;
-    border-radius: 10px;
+    border-radius: 5px;
     scrollbar-color: #47534e transparent;
     --shadow-color: #ffffff22;
     --shadow-size: 12px;
     background-position-y: var(--shadow-offset);
     background-size: 100% calc(100% - var(--shadow-offset));
-    
-    animation: scroll-shadows cubic-bezier(.25,.85,.8,.22);;
+
+    animation: scroll-shadows cubic-bezier(.25, .85, .8, .22);
+    ;
     animation-timeline: scroll(self);
     animation-range: 0 100%;
-    background-image: linear-gradient(
-        var(--shadow-color) 0%,
-        transparent calc((var(--scroll)) * var(--shadow-size)),
-        transparent calc(100% - var(--shadow-size) * (1 - var(--scroll))),
-        var(--shadow-color) 100%
-    );
+    background-image: linear-gradient(var(--shadow-color) 0%,
+            transparent calc((var(--scroll)) * var(--shadow-size)),
+            transparent calc(100% - var(--shadow-size) * (1 - var(--scroll))),
+            var(--shadow-color) 100%);
 }
 
 @property --scroll {
-  syntax: '<number>';
-  inherits: true;
-  initial-value: 0;  
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
 }
 
 @keyframes scroll-shadows {
-  /* Sets the shadow-color only if the element is scrollable */
-  from, to { --shadow-color: #FFF9; }
-  to {
-    --scroll: 1;
-  }
+
+    /* Sets the shadow-color only if the element is scrollable */
+    from,
+    to {
+        --shadow-color: #FFF9;
+    }
+
+    to {
+        --scroll: 1;
+    }
 }
 
 
@@ -116,6 +123,7 @@
     flex-direction: column;
     gap: 3px;
 }
+
 #db-prompt-folder-btn {
     display: flex;
     align-items: center;
@@ -127,28 +135,32 @@
     color: #f4fffb;
     font-size: 0.875rem;
     border: 1px solid rgb(255 255 255 / 12%);
-    border-radius: 10px;
+    border-radius: 5px;
     background: linear-gradient(135deg, #16866d, #126e5a);
     cursor: pointer;
     font-weight: 650;
     box-shadow: 0 5px 14px rgb(15 110 88 / 20%);
     transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+
     &:hover {
         background: linear-gradient(135deg, #1b9c7e, #16866d);
         box-shadow: 0 7px 18px rgb(15 110 88 / 30%);
         transform: translateY(-1px);
     }
+
     &:focus-visible {
         outline: 2px solid #65d8b8;
         outline-offset: 2px;
     }
 }
+
 .db-folder-item-container {
     border: 1px solid rgb(255 255 255 / 10%);
-    border-radius: 11px;
+    border-radius: 5px;
     overflow: hidden;
     background: rgb(255 255 255 / 3%);
 }
+
 .db-folder-list-item {
     display: flex;
     justify-content: space-between;
@@ -156,11 +168,13 @@
     gap: 8px;
     padding: 8px 10px;
     color: #f5f7f6;
-    border-radius: 10px 10px 0 0;
+    border-radius: 5px 5px 0 0;
     font-size: 0.875rem;
     font-weight: 600;
 }
-.db-folder-name, .db-prompt-item-link {
+
+.db-folder-name,
+.db-prompt-item-link {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
@@ -190,25 +204,54 @@
     font-weight: 700;
     line-height: 1.4;
 }
-    
+
 .db-folder-actions {
     display: flex;
     gap: 4px;
     flex-shrink: 0;
 }
 
-.db-folder-actions .pointer {
+.db-folder-actions .pointer,
+.db-prompt-item-wrapper .pointer {
     display: grid;
     width: 26px;
     height: 26px;
     place-items: center;
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
     border-radius: 7px;
-    font-size: 0.8rem;
-    transition: background-color 140ms ease;
+    background: transparent;
+    color: #bfc8c4;
+    font: inherit;
+    transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
-.db-folder-actions .pointer:hover {
+.db-folder-actions .pointer:hover,
+.db-prompt-item-wrapper .pointer:hover {
     background: rgb(255 255 255 / 14%);
+    color: #ffffff;
+}
+
+.db-folder-actions .pointer:active,
+.db-prompt-item-wrapper .pointer:active {
+    transform: scale(0.92);
+}
+
+.db-folder-actions .pointer:focus-visible,
+.db-prompt-item-wrapper .pointer:focus-visible {
+    outline: 2px solid #65d8b8;
+    outline-offset: 1px;
+}
+
+.db-action-button.db-delete-button:hover {
+    background: rgb(239 83 80 / 18%);
+    color: #ffaaa7;
+}
+
+.db-action-icon {
+    width: 15px;
+    height: 15px;
 }
 
 #db-prompt-modal-overlay {
@@ -354,7 +397,7 @@
     outline: 2px solid #41b99a;
     outline-offset: 2px;
 }
-    
+
 .db-folder-list-modal-overlay {
     position: fixed;
     top: 0;
@@ -367,6 +410,7 @@
     justify-content: center;
     z-index: 9999;
 }
+
 .db-folder-list-modal {
     background-color: #383838;
     border-radius: 0.5rem;
@@ -375,11 +419,14 @@
     max-height: 500px;
     overflow-y: auto;
 }
+
 .db-folder-list-modal-header {
-    font-size: 1.125rem; /* 18px */
+    font-size: 1.125rem;
+    /* 18px */
     font-weight: 600;
     margin-bottom: 0.5rem;
 }
+
 .db-folder-list-modal-btn {
     display: flex;
     cursor: pointer;
@@ -392,9 +439,11 @@
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     border-radius: 5px;
+
     &:hover {
         background-color: #5e5e5e;
     }
+
     span {
         display: block;
         text-overflow: ellipsis;
@@ -402,6 +451,7 @@
         overflow: hidden;
     }
 }
+
 .db-folder-icon {
     margin: 0;
     padding: 0;
@@ -441,6 +491,7 @@
         width: auto !important;
     }
 }
+
 .db-prompt-item {
     /* margin-left: 10px; */
     padding: 5px;
@@ -448,6 +499,7 @@
     flex-direction: column;
     gap: 0.25rem;
 }
+
 .db-prompt-item-wrapper {
     display: flex;
     justify-content: space-between;
@@ -458,9 +510,11 @@
     color: #dce3df;
     font-size: 0.8125rem;
     transition: background-color 140ms ease;
+
     &:hover {
         background-color: rgb(255 255 255 / 7%);
     }
+
     &.active {
         background-color: rgb(65 185 154 / 15%);
         color: #effbf7;
@@ -481,17 +535,20 @@
     display: flex;
     justify-content: space-around;
     margin-top: 1rem;
+
     button {
         border: 2px solid #9d9d9d;
         color: white;
         padding: 5px 10px;
         border-radius: 5px;
         cursor: pointer;
+
         &:hover {
             background-color: #7a7a7a;
         }
     }
 }
+
 #db-add-to-folder-btn {
     position: fixed;
     right: 24px;
@@ -554,10 +611,12 @@
     border: none;
     cursor: pointer;
 }
+
 [type=color]::-webkit-color-swatch {
-  border-radius: 5px;
-  border: none;
+    border-radius: 5px;
+    border: none;
 }
+
 [type=checkbox] {
     width: 1rem;
     height: 1rem;
@@ -573,6 +632,7 @@
     transition: background 300ms;
     cursor: pointer;
 }
+
 [type=checkbox]:focus {
     --tw-ring-color: #858585;
 }
@@ -589,9 +649,11 @@
     background-size: contain;
     box-shadow: inset 0 0 0 1px #CCD3D8;
 }
+
 [type=checkbox]:checked {
     background-color: #6e6e6e;
 }
+
 [type=checkbox]:checked::before {
     box-shadow: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E %3Cpath d='M15.88 8.29L10 14.17l-1.88-1.88a.996.996 0 1 0-1.41 1.41l2.59 2.59c.39.39 1.02.39 1.41 0L17.3 9.7a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.42 0z' fill='%23fff'/%3E %3C/svg%3E");
