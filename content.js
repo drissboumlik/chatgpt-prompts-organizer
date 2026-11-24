@@ -29,6 +29,33 @@ function getFoldersOrDefault(foldersWrapper) {
     return normalized;
 }
 
+function getConversationId(link) {
+    return typeof link === 'string' ? link.match(/\/c\/([^/?#]+)/)?.[1] || null : null;
+}
+
+function areSameConversationLinks(firstLink, secondLink) {
+    const firstId = getConversationId(firstLink);
+    const secondId = getConversationId(secondLink);
+    return firstId && secondId ? firstId === secondId : firstLink === secondLink;
+}
+
+function createPlusIcon() {
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.classList.add('db-plus-icon');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M12 5v14M5 12h14');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-linecap', 'round');
+    icon.appendChild(path);
+
+    return icon;
+}
+
 function moveFolderToOrder(folders, folderName, newOrderIndex) {
     const list = [...folders.folders];
     const sourceIndex = list.findIndex(folder => folder.folderName === folderName);
@@ -132,61 +159,98 @@ function showFolderPicker(folders, callback) {
 }
 
 function observeSidebarPrompts() {
-    const sidebar = document.getElementById('history');
-    const observer = new MutationObserver(() => {
-        const promptItems = sidebar.querySelectorAll('a');
+    const processSidebarPrompts = () => {
+        const promptItems = document.querySelectorAll('[data-sidebar-cycle-item]');
 
         promptItems.forEach((item) => {
             if (item.querySelector('.db-folder-icon')) return;
 
+            const conversationElement = item.querySelector('[data-sidebar-archive-chatgpt-id]')
+                || item.closest('[data-sidebar-chatgpt-conversation-key]')
+                || item;
+            const conversationLink = item.querySelector('a[href*="/c/"]');
+            const chatActionsButton = item.querySelector('button[aria-label="Chat actions"]');
+            const actionSlot = chatActionsButton?.closest('[class*="actionSlot"]');
+            if (!conversationLink || !actionSlot) return;
+
+            const name = conversationElement?.getAttribute('aria-label')
+                || item.getAttribute('aria-label')
+                || item.querySelector('[data-thread-title-trigger]')?.textContent.trim()
+                || conversationLink.textContent.trim();
+
+            if (!name) return;
+
+            const link = conversationLink.getAttribute('href');
+            if (!link) return;
+
             const folderBtn = document.createElement('button');
-            folderBtn.innerHTML = '➕';
+            folderBtn.type = 'button';
             folderBtn.className = 'db-folder-icon';
+            folderBtn.title = 'Add to Folder';
+            folderBtn.setAttribute('aria-label', 'Add prompt to folder');
+            folderBtn.appendChild(createPlusIcon());
 
             folderBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
                 chrome.storage.local.get(['folders'], (data) => {
-                    let folders = getFoldersOrDefault(data?.folders);
-                    if (folders?.folders?.length === 0) {
-                        alert('You need to create a folder first!')
+                    const folders = getFoldersOrDefault(data?.folders);
+                    if (folders.folders.length === 0) {
+                        alert('You need to create a folder first!');
                         return;
                     }
-                    const prompt = {
-                        name: item.textContent.replace('➕', '').trim(),
-                        link: item.getAttribute('href'),
-                    };
-                    addPromptToFolderAndSync(folders, prompt);
+                    addPromptToFolderAndSync(folders, { name, link });
                 });
             });
 
-            const promptText = item.innerText;
+            actionSlot.appendChild(folderBtn);
+
             chrome.storage.local.get(['folders'], (data) => {
-                const group = data.folders.folders.find(group =>
-                    group.prompts.some(prompt => prompt.name === promptText)
+                const folders = getFoldersOrDefault(data?.folders);
+                const group = folders.folders.find(folder =>
+                    folder.prompts.some(prompt =>
+                        areSameConversationLinks(prompt.link, link) || prompt.name === name
+                    )
                 );
                 if (group) {
-                    item.style.backgroundColor = `rgb(from ${group.color} r g b / 0.3)`
+                    item.style.backgroundColor = `rgb(from ${group.color} r g b / 0.3)`;
+                } else {
+                    item.style.backgroundColor = '';
                 }
             });
-            item.appendChild(folderBtn);
         });
-    });
+    };
 
-    observer.observe(sidebar, { childList: true, subtree: true });
+    processSidebarPrompts();
+    const observer = new MutationObserver(processSidebarPrompts);
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
 function observeMainThread() {
-    
-    const thread = document.querySelector('#main');
+    let observedThread = null;
+    let threadObserver = null;
 
-    const observer = new MutationObserver(() => {
+    const observeAvailableThread = () => {
+        const thread = document.querySelector('#main');
+        if (thread === observedThread) return;
+
+        threadObserver?.disconnect();
+        observedThread = thread;
+        if (!thread) return;
+
+        threadObserver = new MutationObserver(() => {
+            renderFolders();
+            injectAddToFolderButton();
+        });
+        threadObserver.observe(thread, { childList: true, subtree: true });
         renderFolders();
         injectAddToFolderButton();
-    });
+    };
 
-    observer.observe(thread, { childList: true, subtree: true });
+    const pageObserver = new MutationObserver(observeAvailableThread);
+    pageObserver.observe(document.documentElement, { childList: true, subtree: true });
+    observeAvailableThread();
 }
 
 function renderFolders() {
@@ -197,7 +261,8 @@ function renderFolders() {
         document.getElementById('db-prompt-folder-btn')?.remove();
         const button = document.createElement('button');
         button.id = 'db-prompt-folder-btn';
-        button.textContent = 'New Folder ➕';
+        button.textContent = 'New Folder';
+        button.prepend(createPlusIcon());
         button.addEventListener('click', () => {
             // Show prompt to enter folder name
             showFolderModal();
@@ -253,9 +318,20 @@ function renderFolders() {
                 folderItem.style.backgroundColor = `rgb(from ${folder.color || '#262626'} r g b / 0.5)`;
 
                 const title = document.createElement('span');
-                title.className = "pointer w-100"
-                title.textContent = `${folder.order + 1}- ${folder.folderName}`;
+                title.className = 'pointer db-folder-title';
                 title.setAttribute('data-folderName', folder.folderName)
+                const folderName = document.createElement('span');
+                folderName.className = 'db-folder-name';
+                folderName.textContent = `${folder.order + 1}- ${folder.folderName}`;
+                const promptCount = document.createElement('span');
+                promptCount.className = 'db-folder-prompt-count';
+                promptCount.textContent = String(folder.prompts.length);
+                promptCount.setAttribute(
+                    'aria-label',
+                    `${folder.prompts.length} ${folder.prompts.length === 1 ? 'prompt' : 'prompts'}`
+                );
+                promptCount.title = `${folder.prompts.length} ${folder.prompts.length === 1 ? 'prompt' : 'prompts'}`;
+                title.append(folderName, promptCount);
                 const editFolderNameBtn = document.createElement('span');
                 editFolderNameBtn.className = "pointer"
                 editFolderNameBtn.textContent = '✏️';
@@ -332,7 +408,7 @@ function renderFolders() {
                     const promptWrapper = document.createElement('div');
                     promptWrapper.className = 'db-prompt-item-wrapper';
 
-                    if (window.location.href === `https://chatgpt.com${prompt.link}`) {
+                    if (areSameConversationLinks(window.location.href, prompt.link)) {
                         promptWrapper.classList.add('active');
                     } else {
                         promptWrapper.classList.remove('active');
@@ -396,17 +472,9 @@ function addFolderIfNotExists(folderName, color, oldValue = null, order = null) 
                 return;
             }
 
-            const updatedFolder = {
-                ...originalFolder,
-                folderName: trimmedName,
-                color: color || originalFolder.color || '#262626',
-            };
-
-            const filteredFolders = folders.folders.filter(f => f.folderName !== oldValue);
-            const nextOrderIndex = normalizedOrder;
-            const folderList = [...filteredFolders];
-            folderList.splice(Math.max(0, Math.min(folderList.length, nextOrderIndex)), 0, updatedFolder);
-            folders.folders = folderList.map((folder, index) => ({ ...folder, order: index }));
+            originalFolder.folderName = trimmedName;
+            originalFolder.color = color || originalFolder.color || '#262626';
+            moveFolderToOrder(folders, trimmedName, normalizedOrder);
             syncFolders(folders);
             return;
         }
@@ -427,7 +495,7 @@ function addFolderIfNotExists(folderName, color, oldValue = null, order = null) 
 
 function addPromptToFolder(folderName, prompt, folders) {
     const folder = folders.folders.find(f => f.folderName === folderName);
-    const exists = folder.prompts.some(p => p.link === prompt.link);
+    const exists = folder.prompts.some(p => areSameConversationLinks(p.link, prompt.link));
     if (! exists) {
         folder.prompts.push({ name: prompt.name, link: prompt.link });
     }
@@ -438,16 +506,27 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
     chrome.storage.local.get(['folders'], (result) => {
         const folders = getFoldersOrDefault(result?.folders);
         const validFolderCount = Math.max(1, oldValue ? folders.folders.length : folders.folders.length + 1);
-        const defaultOrder = Number.isFinite(Number(order)) ? Number(order) + 1 : validFolderCount;
+        const defaultOrder = order == null || !Number.isFinite(Number(order))
+            ? validFolderCount
+            : Number(order) + 1;
 
         const overlay = document.createElement('div');
         overlay.id = 'db-prompt-modal-overlay';
 
         const modal = document.createElement('div');
         modal.id = 'db-prompt-modal';
+
+        const title = document.createElement('h2');
+        title.className = 'db-prompt-modal-title';
+        title.textContent = oldValue ? 'Edit folder' : 'Create a folder';
+
+        const description = document.createElement('p');
+        description.className = 'db-prompt-modal-description';
+        description.textContent = 'Choose a name, color, and position for your folder.';
+        modal.append(title, description);
         
         const createFolderBtn = document.createElement('button');
-        createFolderBtn.textContent = 'Submit';
+        createFolderBtn.textContent = oldValue ? 'Save changes' : 'Create folder';
         createFolderBtn.className = 'folder-form-submit-btn';
         createFolderBtn.addEventListener('click', () => {
             const currentOldValue = document.getElementById('prompt-folder-input').getAttribute('data-old-value');
@@ -475,22 +554,36 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
             overlay.remove();
         });
         const buttonsContainer = document.createElement('div');
-        buttonsContainer.className = 'db-folder-list-modal-buttons';
+        buttonsContainer.className = 'db-prompt-modal-buttons';
         buttonsContainer.appendChild(closeButton);
         buttonsContainer.appendChild(createFolderBtn);
 
+        const nameField = document.createElement('div');
+        nameField.className = 'db-prompt-modal-field';
+        const nameLabel = document.createElement('label');
+        nameLabel.htmlFor = 'prompt-folder-input';
+        nameLabel.textContent = 'Folder name';
+
         const input = document.createElement('input');
         input.type = 'text';
-        input.placeholder = 'Folder name';
+        input.className = 'db-prompt-modal-input';
+        input.placeholder = 'e.g. Writing prompts';
         input.id = 'prompt-folder-input';
         input.value = folderName;
         input.setAttribute('data-old-value', oldValue || folderName);
         input.autofocus = true;
+        nameField.append(nameLabel, input);
+
+        const orderField = document.createElement('div');
+        orderField.className = 'db-prompt-modal-field';
+        const orderLabel = document.createElement('label');
+        orderLabel.htmlFor = 'prompt-folder-order';
+        orderLabel.textContent = 'Position';
 
         const orderInput = document.createElement('input');
         orderInput.type = 'number';
+        orderInput.className = 'db-prompt-modal-input';
         orderInput.id = 'prompt-folder-order';
-        orderInput.style.backgroundColor = '#262626';
         orderInput.min = '1';
         orderInput.max = String(validFolderCount);
         orderInput.value = String(defaultOrder);
@@ -504,16 +597,21 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
             const clampedValue = Math.min(Math.max(rawValue, 1), validFolderCount);
             orderInput.value = String(clampedValue);
         });
+        orderField.append(orderLabel, orderInput);
+
+        const colorField = document.createElement('div');
+        colorField.className = 'db-prompt-modal-field db-prompt-modal-color-field';
+        const colorLabel = document.createElement('label');
+        colorLabel.htmlFor = 'prompt-folder-color';
+        colorLabel.textContent = 'Folder color';
 
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
         colorInput.id = 'prompt-folder-color';
         colorInput.value = color;
+        colorField.append(colorLabel, colorInput);
 
-        modal.appendChild(input);
-        modal.appendChild(orderInput);
-        modal.appendChild(colorInput);
-        modal.appendChild(buttonsContainer);
+        modal.append(nameField, orderField, colorField, buttonsContainer);
 
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
@@ -530,7 +628,9 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
 
 function waitForSidebarAndInjectButton() {
     const checkInterval = setInterval(() => {
-        const sidebar = document.getElementById('history');
+        const sidebar = document.getElementById('history')
+            || document.querySelector('[role="list"][tabindex="-1"]')
+            || document.querySelector('[data-sidebar-chatgpt-conversation-key]');
 
         if (!sidebar || document.getElementById('db-prompt-folder-btn')) {
             return;
@@ -559,7 +659,7 @@ function injectAddToFolderButton() {
     const checkInterval = setInterval(() => {
 
         let url = window.location.href;
-        const pattern = /^https:\/\/chatgpt\.com\/c\/[a-zA-Z0-9-]+$/;
+        const pattern = /^https:\/\/chatgpt\.com\/(?:g\/[^/]+\/)?c\/[a-zA-Z0-9-]+\/?$/;
 
         if (! pattern.test(url)) {
             document.getElementById('db-add-to-folder-btn')?.remove();
@@ -574,8 +674,9 @@ function injectAddToFolderButton() {
 
         const button = document.createElement('button');
         button.id = 'db-add-to-folder-btn';
-        button.textContent = '➕'
         button.title = 'Add to Folder';
+        button.setAttribute('aria-label', 'Add current chat to folder');
+        button.appendChild(createPlusIcon());
         button.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
