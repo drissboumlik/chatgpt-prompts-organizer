@@ -132,7 +132,11 @@ function showFolderPicker(folders, callback) {
     const title = document.createElement('h2');
     title.className = 'db-folder-list-modal-header';
     title.textContent = 'Choose Folder';
-    modal.appendChild(title);
+
+    const description = document.createElement('p');
+    description.className = 'db-folder-list-modal-description';
+    description.textContent = 'Select one or more folders to add this prompt.';
+    modal.append(title, description);
 
     folders.folders.forEach(folder => {
         const checkbox = document.createElement('input');
