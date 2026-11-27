@@ -1,0 +1,9 @@
+[class*="actionSlot"]:has(> .db-folder-icon) {
+    width: 76px !important;
+}
+
+@media (hover: none) {
+    [class*="actionSlot"]:has(> .db-folder-icon) {
+        width: auto !important;
+    }
+}

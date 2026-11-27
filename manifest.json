@@ -28,7 +28,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["styles.css"],
+      "resources": [
+        "styles.css",
+        "platforms/chatgpt.css",
+        "platforms/claude.css",
+        "platforms/deepseek.css"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

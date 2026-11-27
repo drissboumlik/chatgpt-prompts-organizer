@@ -25,8 +25,9 @@ The organizer enhances your AI chat experience by providing:
   - Organize prompts efficiently.
 - **Multi-platform support**: Organize ChatGPT, Claude, and DeepSeek chats in the same folders.
 
-Platform-specific URL and DOM handling lives in `platforms/`. To add another service,
-create an adapter there and register it in the manifest before the shared `content.js`.
+Platform-specific URL, DOM, and styling logic lives in `platforms/`. Each platform's CSS
+is loaded alongside the shared `styles.css`. To add another service, create an adapter
+and stylesheet there, then register both in the manifest.
 
 
 

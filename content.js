@@ -1,11 +1,19 @@
-function injectStyles() {
-    fetch(chrome.runtime.getURL('styles.css'))
-        .then(res => res.text())
-        .then(css => {
-            // You can then inject it like:
+function injectStyles(platform) {
+    const stylesheetPaths = ['styles.css', `platforms/${platform.id}.css`];
+    Promise.all(stylesheetPaths.map(async path => {
+        const response = await fetch(chrome.runtime.getURL(path));
+        if (!response.ok) {
+            throw new Error(`Failed to load stylesheet: ${path} (${response.status})`);
+        }
+        return response.text();
+    }))
+        .then(stylesheets => {
             const style = document.createElement('style');
-            style.textContent = css;
+            style.textContent = stylesheets.join('\n');
             document.head.appendChild(style);
+        })
+        .catch(error => {
+            console.error('Failed to inject Prompt Organizer styles:', error);
         });
 }
 
@@ -802,7 +810,7 @@ function startOrganizer() {
         }
     });
 
-    injectStyles();
+    injectStyles(platform);
     renderFolders();
     injectAddToFolderButton();
     observeSidebarPrompts();

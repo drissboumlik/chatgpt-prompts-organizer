@@ -1,0 +1,8 @@
+.db-deepseek-chat-item > .db-folder-icon {
+    position: absolute;
+    top: 50%;
+    right: 36px;
+    z-index: 11;
+    transform: translateY(-50%);
+    pointer-events: auto;
+}

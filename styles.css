@@ -604,25 +604,6 @@
     height: 12px;
 }
 
-[class*="actionSlot"]:has(> .db-folder-icon) {
-    width: 76px !important;
-}
-
-.db-deepseek-chat-item > .db-folder-icon {
-    position: absolute;
-    top: 50%;
-    right: 36px;
-    z-index: 11;
-    transform: translateY(-50%);
-    pointer-events: auto;
-}
-
-@media (hover: none) {
-    [class*="actionSlot"]:has(> .db-folder-icon) {
-        width: auto !important;
-    }
-}
-
 .db-prompt-item {
     /* margin-left: 10px; */
     padding: 5px;
