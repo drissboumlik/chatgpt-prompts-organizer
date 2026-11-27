@@ -1,12 +1,12 @@
-# ChatGPT Prompts Organizer
+# Prompts Organizer
 
-A Chrome extension designed to streamline your ChatGPT experience by allowing you to organize, manage, and customize your prompts efficiently.
+A Chrome extension designed to organize chats into folders on ChatGPT and Claude.
 
 
 
 ## 🧠 Overview
 
-The ChatGPT Prompts Organizer enhances your interaction with ChatGPT by providing:
+The organizer enhances your AI chat experience by providing:
 
 - **Folder Management**: Create, rename, update (including folder color), and delete folders to categorize your prompts.
 - **Prompt Organization**: Add, remove, and organize prompts within folders.
@@ -23,6 +23,10 @@ The ChatGPT Prompts Organizer enhances your interaction with ChatGPT by providin
   - Add prompts into folders.
   - Delete prompts from folders.
   - Organize prompts efficiently.
+- **Multi-platform support**: Organize ChatGPT and Claude chats in the same folders.
+
+Platform-specific URL and DOM handling lives in `platforms/`. To add another service,
+create an adapter there and register it in the manifest before the shared `content.js`.
 
 
 
@@ -33,7 +37,7 @@ The ChatGPT Prompts Organizer enhances your interaction with ChatGPT by providin
 1. Clone this repository:
 
    ```bash
-   git clone https://github.com/drissboumlik/chatgpt-prompts-organizer.git
+   git clone https://github.com/drissboumlik/prompts-organizer.git
    ```
 2. Open Chrome and navigate to chrome://extensions/.
 3. Enable Developer mode (toggle switch on the top-right).
@@ -53,7 +57,7 @@ The ChatGPT Prompts Organizer enhances your interaction with ChatGPT by providin
 
 ---
 
-### Add prompts to folders from chatgpt sidebar
+### Add prompts to folders from chatgpt/claude sidebar
 
 <img src="assets/Screenshot_7.png" width="300" />
 <img src="assets/Screenshot_8.png" width="300" />

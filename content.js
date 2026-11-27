@@ -9,6 +9,24 @@ function injectStyles() {
         });
 }
 
+function getPlatformForLink(link, platformId = null) {
+    const platforms = globalThis.PromptOrganizerPlatforms || {};
+    if (platformId && platforms[platformId]) return platforms[platformId];
+    if (typeof link !== 'string') return null;
+
+    if (/^[a-z][a-z\d+.-]*:\/\//i.test(link)) {
+        try {
+            const hostname = new URL(link).hostname;
+            const matchingPlatform = Object.values(platforms).find(platform => platform.supportsHost(hostname));
+            if (matchingPlatform) return matchingPlatform;
+        } catch {
+            return null;
+        }
+    }
+
+    return Object.values(platforms).find(platform => platform.getChatId(link)) || null;
+}
+
 function getFoldersOrDefault(foldersWrapper) {
     const normalized = (Array.isArray(foldersWrapper?.folders)
         ? foldersWrapper
@@ -20,7 +38,16 @@ function getFoldersOrDefault(foldersWrapper) {
             folderName: folder?.folderName || `Folder ${index + 1}`,
             color: folder?.color || '#262626',
             hidden: Boolean(folder?.hidden),
-            prompts: Array.isArray(folder?.prompts) ? folder.prompts : [],
+            prompts: (Array.isArray(folder?.prompts) ? folder.prompts : [])
+                .filter(prompt => prompt && typeof prompt.link === 'string')
+                .map(prompt => {
+                    const platform = getPlatformForLink(prompt.link, prompt.platform);
+                    return {
+                        ...prompt,
+                        platform: platform?.id || prompt.platform,
+                        link: platform?.normalizeLink(prompt.link) || prompt.link,
+                    };
+                }),
             order: Number.isFinite(Number(folder?.order)) ? Number(folder.order) : index,
         }))
         .sort((a, b) => Number(a.order) - Number(b.order))
@@ -30,10 +57,14 @@ function getFoldersOrDefault(foldersWrapper) {
 }
 
 function getConversationId(link) {
-    return typeof link === 'string' ? link.match(/\/c\/([^/?#]+)/)?.[1] || null : null;
+    return getPlatformForLink(link)?.getChatId(link) || null;
 }
 
 function areSameConversationLinks(firstLink, secondLink) {
+    const firstPlatform = getPlatformForLink(firstLink);
+    const secondPlatform = getPlatformForLink(secondLink);
+    if (firstPlatform?.id !== secondPlatform?.id) return false;
+
     const firstId = getConversationId(firstLink);
     const secondId = getConversationId(secondLink);
     return firstId && secondId ? firstId === secondId : firstLink === secondLink;
@@ -195,35 +226,16 @@ function showFolderPicker(folders, callback) {
 }
 
 function observeSidebarPrompts() {
+    const platform = getActivePlatform();
     const processSidebarPrompts = () => {
-        const promptItems = document.querySelectorAll('[data-sidebar-cycle-item]');
-
-        promptItems.forEach((item) => {
-            if (item.querySelector('.db-folder-icon')) return;
-
-            const conversationElement = item.querySelector('[data-sidebar-archive-chatgpt-id]')
-                || item.closest('[data-sidebar-chatgpt-conversation-key]')
-                || item;
-            const conversationLink = item.querySelector('a[href*="/c/"]');
-            const chatActionsButton = item.querySelector('button[aria-label="Chat actions"]');
-            const actionSlot = chatActionsButton?.closest('[class*="actionSlot"]');
-            if (!conversationLink || !actionSlot) return;
-
-            const name = conversationElement?.getAttribute('aria-label')
-                || item.getAttribute('aria-label')
-                || item.querySelector('[data-thread-title-trigger]')?.textContent.trim()
-                || conversationLink.textContent.trim();
-
-            if (!name) return;
-
-            const link = conversationLink.getAttribute('href');
-            if (!link) return;
+        platform.getChatEntries().forEach(({ item, link, name, actionSlot }) => {
+            if (!link || !name || actionSlot.querySelector('.db-folder-icon')) return;
 
             const folderBtn = document.createElement('button');
             folderBtn.type = 'button';
             folderBtn.className = 'db-folder-icon';
             folderBtn.title = 'Add to Folder';
-            folderBtn.setAttribute('aria-label', 'Add prompt to folder');
+            folderBtn.setAttribute('aria-label', `Add ${name} to folder`);
             folderBtn.appendChild(createPlusIcon());
 
             folderBtn.addEventListener('click', (e) => {
@@ -236,7 +248,7 @@ function observeSidebarPrompts() {
                         alert('You need to create a folder first!');
                         return;
                     }
-                    addPromptToFolderAndSync(folders, { name, link });
+                    addPromptToFolderAndSync(folders, { name, link, platform: platform.id });
                 });
             });
 
@@ -246,7 +258,8 @@ function observeSidebarPrompts() {
                 const folders = getFoldersOrDefault(data?.folders);
                 const group = folders.folders.find(folder =>
                     folder.prompts.some(prompt =>
-                        areSameConversationLinks(prompt.link, link) || prompt.name === name
+                        (prompt.platform === platform.id && areSameConversationLinks(prompt.link, link))
+                        || (prompt.platform === platform.id && prompt.name === name)
                     )
                 );
                 if (group) {
@@ -259,16 +272,21 @@ function observeSidebarPrompts() {
     };
 
     processSidebarPrompts();
-    const observer = new MutationObserver(processSidebarPrompts);
+    const observer = new MutationObserver(() => {
+        processSidebarPrompts();
+        injectAddToFolderButton();
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 }
 
 function observeMainThread() {
+    const platform = getActivePlatform();
     let observedThread = null;
     let threadObserver = null;
 
     const observeAvailableThread = () => {
-        const thread = document.querySelector('#main');
+        const thread = platform.getMainContentElement();
+        if (!thread) return;
         if (thread === observedThread) return;
 
         threadObserver?.disconnect();
@@ -287,6 +305,11 @@ function observeMainThread() {
     const pageObserver = new MutationObserver(observeAvailableThread);
     pageObserver.observe(document.documentElement, { childList: true, subtree: true });
     observeAvailableThread();
+}
+
+function getActivePlatform() {
+    const platforms = globalThis.PromptOrganizerPlatforms || {};
+    return Object.values(platforms).find(platform => platform.supportsHost(window.location.hostname));
 }
 
 function renderFolders() {
@@ -423,8 +446,17 @@ function renderFolders() {
                 folder.prompts.forEach(prompt => {
                     const link = document.createElement('a');
                     link.href = prompt.link;
-                    link.textContent = prompt.name;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
                     link.className = 'db-prompt-item-link';
+                    const platform = getPlatformForLink(prompt.link, prompt.platform);
+                    if (platform?.createIcon) {
+                        link.appendChild(platform.createIcon());
+                    }
+                    const promptName = document.createElement('span');
+                    promptName.className = 'db-prompt-item-title';
+                    promptName.textContent = prompt.name;
+                    link.appendChild(promptName);
                     const trashIcon = document.createElement('button');
                     trashIcon.type = 'button';
                     trashIcon.className = 'pointer db-action-button db-delete-button';
@@ -542,7 +574,11 @@ function addPromptToFolder(folderName, prompt, folders) {
     const folder = folders.folders.find(f => f.folderName === folderName);
     const exists = folder.prompts.some(p => areSameConversationLinks(p.link, prompt.link));
     if (! exists) {
-        folder.prompts.push({ name: prompt.name, link: prompt.link });
+        folder.prompts.push({
+            name: prompt.name,
+            link: prompt.link,
+            platform: prompt.platform || getPlatformForLink(prompt.link)?.id,
+        });
     }
     return folders;
 }
@@ -671,84 +707,54 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
 }
 
 
-function waitForSidebarAndInjectButton() {
-    const checkInterval = setInterval(() => {
-        const sidebar = document.getElementById('history')
-            || document.querySelector('[role="list"][tabindex="-1"]')
-            || document.querySelector('[data-sidebar-chatgpt-conversation-key]');
-
-        if (!sidebar || document.getElementById('db-prompt-folder-btn')) {
-            return;
-        }
-        
-
-        clearInterval(checkInterval);
-        
-        injectStyles();
-
-        injectAddToFolderButton();
-
-        // Render them
-        renderFolders();
-        
-        // ✅ Watch for prompt items being added to the sidebar
-        observeSidebarPrompts();
-        
-        observeMainThread();
-
-    }, 500);
-}
-
 function injectAddToFolderButton() {
-    
-    const checkInterval = setInterval(() => {
+    const platform = getActivePlatform();
+    const currentChat = platform?.getCurrentChat();
+    const existingButton = document.getElementById('db-add-to-folder-btn');
+    if (!currentChat) {
+        existingButton?.remove();
+        return;
+    }
+    if (existingButton?.dataset.conversationLink === currentChat.link) return;
+    existingButton?.remove();
 
-        let url = window.location.href;
-        const pattern = /^https:\/\/chatgpt\.com\/(?:g\/[^/]+\/)?c\/[a-zA-Z0-9-]+\/?$/;
+    const button = document.createElement('button');
+    button.id = 'db-add-to-folder-btn';
+    button.dataset.conversationLink = currentChat.link;
+    button.title = 'Add to Folder';
+    button.setAttribute('aria-label', 'Add current chat to folder');
+    button.appendChild(createPlusIcon());
+    button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-        if (! pattern.test(url)) {
-            document.getElementById('db-add-to-folder-btn')?.remove();
+        const chat = platform.getCurrentChat();
+        if (!chat) {
+            alert("Can't add an empty prompt to folders!");
             return;
         }
-
-        if (document.getElementById('db-add-to-folder-btn')) {
-            return;
-        }
-
-        clearInterval(checkInterval);
-
-        const button = document.createElement('button');
-        button.id = 'db-add-to-folder-btn';
-        button.title = 'Add to Folder';
-        button.setAttribute('aria-label', 'Add current chat to folder');
-        button.appendChild(createPlusIcon());
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            url = window.location.href;
-            if (! pattern.test(url)) {
-                alert("Can't add an empty prompt to folders!");
+        chrome.storage.local.get(['folders'], (data) => {
+            const folders = getFoldersOrDefault(data?.folders);
+            if (folders.folders.length === 0) {
+                alert('You need to create a folder first!');
                 return;
             }
-            chrome.storage.local.get(['folders'], (data) => {
-                let folders = getFoldersOrDefault(data?.folders);
-                if (folders?.folders?.length === 0) {
-                    alert('You need to create a folder first!');
-                    return;
-                }
-                const prompt = {
-                    name: document.title.trim(),
-                    link: url.replace('https://chatgpt.com', ''),
-                };
-                addPromptToFolderAndSync(folders, prompt);
-            });
+            addPromptToFolderAndSync(folders, { ...chat, platform: platform.id });
         });
-
-        document.body.append(button);
     });
-    
+
+    document.body.append(button);
 }
 
-// Run on initial load
-waitForSidebarAndInjectButton();
+function startOrganizer() {
+    const platform = getActivePlatform();
+    if (!platform) return;
+
+    injectStyles();
+    renderFolders();
+    injectAddToFolderButton();
+    observeSidebarPrompts();
+    observeMainThread();
+}
+
+startOrganizer();

@@ -601,8 +601,43 @@
 }
 
 .db-prompt-item-link {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
     color: inherit;
     text-decoration: none;
+}
+
+.db-prompt-item-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.db-platform-icon {
+    box-sizing: border-box;
+    display: block;
+    width: 21px;
+    height: 21px;
+    flex: 0 0 21px;
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+}
+
+.db-platform-icon-chatgpt {
+    border-color: rgb(65 185 154 / 30%);
+    background: rgb(22 134 109 / 24%);
+    color: #82e0c3;
+}
+
+.db-platform-icon-claude {
+    border-color: rgb(239 167 111 / 30%);
+    background: rgb(154 89 47 / 22%);
+    color: #f2ad78;
 }
 
 .db-prompt-item-link:hover {
