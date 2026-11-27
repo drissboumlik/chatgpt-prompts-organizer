@@ -2,9 +2,14 @@
   "manifest_version": 3,
   "name": "Prompts Organizer",
   "version": "1.0",
-  "description": "A Chrome extension to organize ChatGPT, Claude, and DeepSeek chats into folders.",
+  "description": "A Chrome extension to organize ChatGPT, Claude, DeepSeek, and Gemini chats into folders.",
   "permissions": ["storage", "scripting", "tabs"],
-  "host_permissions": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.deepseek.com/*"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://chat.deepseek.com/*",
+    "https://gemini.google.com/*"
+  ],
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
@@ -18,8 +23,19 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.deepseek.com/*"],
-      "js": ["platforms/chatgpt.js", "platforms/claude.js", "platforms/deepseek.js", "content.js"]
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://chat.deepseek.com/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "platforms/chatgpt.js",
+        "platforms/claude.js",
+        "platforms/deepseek.js",
+        "platforms/gemini.js",
+        "content.js"
+      ]
     }
   ],
   "icons": {
@@ -32,7 +48,8 @@
         "styles.css",
         "platforms/chatgpt.css",
         "platforms/claude.css",
-        "platforms/deepseek.css"
+        "platforms/deepseek.css",
+        "platforms/gemini.css"
       ],
       "matches": ["<all_urls>"]
     }

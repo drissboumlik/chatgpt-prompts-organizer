@@ -1,0 +1,11 @@
+.db-gemini-action-slot {
+    flex-direction: row-reverse !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px;
+}
+
+.db-gemini-action-slot > .db-folder-icon {
+    margin: 0;
+    pointer-events: auto;
+}

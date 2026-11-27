@@ -679,6 +679,12 @@
     color: #8dbbff;
 }
 
+.db-platform-icon-gemini {
+    border-color: rgb(140 150 255 / 30%);
+    background: rgb(91 95 190 / 22%);
+    color: #b0b4ff;
+}
+
 .db-prompt-item-link:hover {
     text-decoration: underline;
     text-underline-offset: 3px;
