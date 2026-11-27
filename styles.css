@@ -608,6 +608,15 @@
     width: 76px !important;
 }
 
+.db-deepseek-chat-item > .db-folder-icon {
+    position: absolute;
+    top: 50%;
+    right: 36px;
+    z-index: 11;
+    transform: translateY(-50%);
+    pointer-events: auto;
+}
+
 @media (hover: none) {
     [class*="actionSlot"]:has(> .db-folder-icon) {
         width: auto !important;
@@ -681,6 +690,12 @@
     border-color: rgb(239 167 111 / 30%);
     background: rgb(154 89 47 / 22%);
     color: #f2ad78;
+}
+
+.db-platform-icon-deepseek {
+    border-color: rgb(104 165 255 / 30%);
+    background: rgb(57 111 190 / 22%);
+    color: #8dbbff;
 }
 
 .db-prompt-item-link:hover {

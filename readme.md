@@ -1,6 +1,6 @@
 # Prompts Organizer
 
-A Chrome extension designed to organize chats into folders on ChatGPT and Claude.
+A Chrome extension designed to organize chats into folders on ChatGPT, Claude, and DeepSeek.
 
 
 
@@ -23,7 +23,7 @@ The organizer enhances your AI chat experience by providing:
   - Add prompts into folders.
   - Delete prompts from folders.
   - Organize prompts efficiently.
-- **Multi-platform support**: Organize ChatGPT and Claude chats in the same folders.
+- **Multi-platform support**: Organize ChatGPT, Claude, and DeepSeek chats in the same folders.
 
 Platform-specific URL and DOM handling lives in `platforms/`. To add another service,
 create an adapter there and register it in the manifest before the shared `content.js`.
