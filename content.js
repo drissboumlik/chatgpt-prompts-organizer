@@ -119,6 +119,24 @@ function createActionIcon(type) {
     return icon;
 }
 
+function createSyncIcon() {
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.classList.add('db-sync-icon');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M20 7v5h-5M4 17v-5h5m-4.1-3a8 8 0 0 1 13.2-2L20 12M4 12l1.9 5a8 8 0 0 0 13.2-2');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '1.8');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    icon.appendChild(path);
+
+    return icon;
+}
+
 function moveFolderToOrder(folders, folderName, newOrderIndex) {
     const list = [...folders.folders];
     const sourceIndex = list.findIndex(folder => folder.folderName === folderName);
@@ -335,10 +353,20 @@ function renderFolders() {
         foldersWrapper.className = `db-folder-wrapper ${ folders.hidden ? '' : 'visible'}`;
         
         const toggleFolderWrapper = document.createElement('div');
-        toggleFolderWrapper.id = 'db-toggle-folder-wrapper'
-        toggleFolderWrapper.className = 'db-toggle-folder-wrapper pointer'
-        toggleFolderWrapper.addEventListener('click', () => {
+        toggleFolderWrapper.id = 'db-toggle-folder-wrapper';
+        toggleFolderWrapper.className = 'db-toggle-folder-wrapper';
+
+        const folderTab = document.createElement('div');
+        folderTab.className = 'db-folder-tab';
+
+        const toggleButton = document.createElement('button');
+        toggleButton.type = 'button';
+        toggleButton.className = 'db-folder-tab-toggle';
+        toggleButton.textContent = 'Folders';
+        toggleButton.setAttribute('aria-expanded', String(foldersWrapper.classList.contains('visible')));
+        toggleButton.addEventListener('click', () => {
             foldersWrapper.classList.toggle('visible');
+            toggleButton.setAttribute('aria-expanded', String(foldersWrapper.classList.contains('visible')));
             chrome.storage.local.get(['folders'], (result) => {
                 let folders = getFoldersOrDefault(result?.folders);
                 folders.hidden = ! foldersWrapper.classList.contains('visible');
@@ -346,6 +374,19 @@ function renderFolders() {
             });
         });
 
+        const refreshButton = document.createElement('button');
+        refreshButton.type = 'button';
+        refreshButton.className = 'db-folder-sync-button';
+        refreshButton.title = 'Sync folders';
+        refreshButton.setAttribute('aria-label', 'Sync folders from other tabs');
+        refreshButton.appendChild(createSyncIcon());
+        refreshButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            renderFolders();
+        });
+
+        folderTab.append(toggleButton, refreshButton);
+        toggleFolderWrapper.appendChild(folderTab);
         foldersWrapper.append(toggleFolderWrapper);
         
         const isValidFoldersArray = Array.isArray(folders?.folders) && folders.folders.length > 0;
@@ -749,6 +790,12 @@ function injectAddToFolderButton() {
 function startOrganizer() {
     const platform = getActivePlatform();
     if (!platform) return;
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes.folders) {
+            renderFolders();
+        }
+    });
 
     injectStyles();
     renderFolders();

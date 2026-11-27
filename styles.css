@@ -28,25 +28,68 @@
 
     .db-toggle-folder-wrapper {
         position: absolute;
-        cursor: pointer;
+        left: -74px;
+        top: 50px;
+    }
 
-        &:before {
-            content: 'Folders';
-            transform: rotate(-90deg);
-            display: block;
-            position: absolute;
-            left: -50px;
-            top: 30px;
-            color: #effbf7;
-            background: linear-gradient(135deg, #199679, #14765f);
-            padding: 9px 13px;
-            border: 1px solid rgb(255 255 255 / 14%);
-            border-radius: 10px 10px 0 0;
-            box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-        }
+    .db-folder-tab {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px;
+        border: 1px solid rgb(255 255 255 / 14%);
+        border-radius: 10px 10px 0 0;
+        background: linear-gradient(135deg, #199679, #14765f);
+        box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+        transform: rotate(-90deg);
+        transform-origin: center;
+    }
+
+    .db-folder-tab-toggle,
+    .db-folder-sync-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        border: 0;
+        border-radius: 7px;
+        color: #effbf7;
+        cursor: pointer;
+    }
+
+    .db-folder-tab-toggle {
+        padding: 0 8px;
+        background: transparent;
+        font: inherit;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+
+    .db-folder-sync-button {
+        width: 32px;
+        padding: 0;
+        background: rgb(0 0 0 / 14%);
+        transition: background-color 140ms ease, transform 140ms ease;
+    }
+
+    .db-folder-sync-button:hover {
+        background: rgb(0 0 0 / 28%);
+    }
+
+    .db-folder-sync-button:active {
+        transform: scale(0.92);
+    }
+
+    .db-folder-tab-toggle:focus-visible,
+    .db-folder-sync-button:focus-visible {
+        outline: 2px solid #d5fff2;
+        outline-offset: 2px;
+    }
+
+    .db-sync-icon {
+        width: 17px;
+        height: 17px;
     }
 
     .db-folder-wrapper-container {
