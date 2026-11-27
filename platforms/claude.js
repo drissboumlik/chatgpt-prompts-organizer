@@ -47,7 +47,9 @@
             return [...document.querySelectorAll('a[href*="/chat/"]')]
                 .map((linkElement) => {
                     if (linkElement.closest('#db-folder-wrapper, .db-prompt-item-wrapper')) return null;
-                    const item = linkElement.closest('[data-row-key^="chat:"], tr[data-clickable]');
+                    const item = linkElement.closest(
+                        '[data-row-key^="chat:"], [data-select-row-key^="chat:"], tr[data-clickable]'
+                    );
                     if (!item) return null;
 
                     const actionSlot = item.querySelector('[data-row-controls]')
