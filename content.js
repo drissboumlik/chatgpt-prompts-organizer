@@ -334,6 +334,7 @@ function renderFolders() {
 
     chrome.storage.local.get(['folders'], (result) => {
         let folders = getFoldersOrDefault(result?.folders);
+        const folderScrollTop = document.getElementById('db-folders-container')?.scrollTop ?? 0;
 
         document.getElementById('db-prompt-folder-btn')?.remove();
         const button = document.createElement('button');
@@ -555,6 +556,10 @@ function renderFolders() {
         
         // sidebar.parentNode.insertBefore(foldersWrapper, sidebar);
         document.body.appendChild(foldersWrapper);
+        const folderListContainer = document.getElementById('db-folders-container');
+        if (folderListContainer) {
+            folderListContainer.scrollTop = folderScrollTop;
+        }
 
         
     });
