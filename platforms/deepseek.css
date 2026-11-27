@@ -4,5 +4,20 @@
     right: 36px;
     z-index: 11;
     transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 140ms ease;
+}
+
+.db-deepseek-chat-item:hover > .db-folder-icon,
+.db-deepseek-chat-item:focus-within > .db-folder-icon {
+    opacity: 1;
     pointer-events: auto;
+}
+
+@media (hover: none) {
+    .db-deepseek-chat-item > .db-folder-icon {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }
