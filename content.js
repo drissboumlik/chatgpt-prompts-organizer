@@ -9,7 +9,10 @@ function injectStyles(platform) {
     }))
         .then(stylesheets => {
             const style = document.createElement('style');
-            style.textContent = stylesheets.join('\n');
+            style.textContent = stylesheets.join('\n').replace(
+                '__INTER_FONT_URL__',
+                chrome.runtime.getURL('assets/fonts/Inter-Variable.ttf')
+            );
             document.head.appendChild(style);
         })
         .catch(error => {
