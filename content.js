@@ -186,7 +186,7 @@ function showFolderPicker(folders, callback) {
     const overlay = document.createElement('div');
     overlay.className = 'db-folder-list-modal-overlay';
 
-    const modal = document.createElement('div');
+    const modal = document.createElement('form');
     modal.className = 'db-folder-list-modal';
 
     const title = document.createElement('h2');
@@ -219,23 +219,26 @@ function showFolderPicker(folders, callback) {
         modal.appendChild(label);
     });
     
-    
     const closeButton = document.createElement('button');
+    closeButton.type = 'button';
     closeButton.textContent = 'Close';
     closeButton.addEventListener('click', () => {
         overlay.remove();
     });
     
     const addButton = document.createElement('button');
+    addButton.type = 'submit';
     addButton.textContent = 'Submit';
-    addButton.addEventListener('click', (e) => {
-        document.querySelectorAll('.db-folder-list-modal input[type="checkbox"]:checked').forEach((checkbox) => {
+    modal.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const selectedFolders = modal.querySelectorAll('input[type="checkbox"]:checked');
+        if (selectedFolders.length === 0) return;
+
+        selectedFolders.forEach((checkbox) => {
             const folderName = checkbox.getAttribute('data-folder-name');
-            // Add prompt to selected folder
             callback(folderName);
-            // Close modal
-            overlay.remove();
         });
+        overlay.remove();
     });
     
     const buttonsContainer = document.createElement('div');
@@ -649,7 +652,7 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
         const overlay = document.createElement('div');
         overlay.id = 'db-prompt-modal-overlay';
 
-        const modal = document.createElement('div');
+        const modal = document.createElement('form');
         modal.id = 'db-prompt-modal';
 
         const title = document.createElement('h2');
@@ -662,9 +665,11 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
         modal.append(title, description);
         
         const createFolderBtn = document.createElement('button');
+        createFolderBtn.type = 'submit';
         createFolderBtn.textContent = oldValue ? 'Save changes' : 'Create folder';
         createFolderBtn.className = 'folder-form-submit-btn';
-        createFolderBtn.addEventListener('click', () => {
+        modal.addEventListener('submit', (event) => {
+            event.preventDefault();
             const currentOldValue = document.getElementById('prompt-folder-input').getAttribute('data-old-value');
             const name = document.getElementById('prompt-folder-input').value.trim();
             const colorValue = document.getElementById('prompt-folder-color').value.trim();
@@ -684,6 +689,7 @@ function showFolderModal(folderName = '', color = '#262626', oldValue = '', orde
             document.body.removeChild(overlay);
         });
         const closeButton = document.createElement('button');
+        closeButton.type = 'button';
         closeButton.textContent = 'Close';
         closeButton.className = 'folder-form-close-btn';
         closeButton.addEventListener('click', () => {
