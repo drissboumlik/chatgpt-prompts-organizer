@@ -170,9 +170,7 @@ function moveFolderToOrder(folders, folderName, newOrderIndex) {
 
 function syncFolders(folders) {
     const normalizedFolders = getFoldersOrDefault(folders);
-    chrome.storage.local.set({ folders: normalizedFolders }, () => {
-        renderFolders();
-    });
+    chrome.storage.local.set({ folders: normalizedFolders });
 }
 
 function addPromptToFolderAndSync(folders, prompt) {
@@ -323,11 +321,9 @@ function observeMainThread() {
         if (!thread) return;
 
         threadObserver = new MutationObserver(() => {
-            renderFolders();
             injectAddToFolderButton();
         });
         threadObserver.observe(thread, { childList: true, subtree: true });
-        renderFolders();
         injectAddToFolderButton();
     };
 
