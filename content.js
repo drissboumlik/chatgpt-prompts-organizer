@@ -170,7 +170,9 @@ function moveFolderToOrder(folders, folderName, newOrderIndex) {
 
 function syncFolders(folders) {
     const normalizedFolders = getFoldersOrDefault(folders);
-    chrome.storage.local.set({ folders: normalizedFolders });
+    chrome.storage.local.set({ folders: normalizedFolders }, () => {
+        renderFolders();
+    });
 }
 
 function addPromptToFolderAndSync(folders, prompt) {
