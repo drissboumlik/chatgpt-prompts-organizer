@@ -172,6 +172,7 @@ function syncFolders(folders) {
     const normalizedFolders = getFoldersOrDefault(folders);
     chrome.storage.local.set({ folders: normalizedFolders }, () => {
         renderFolders();
+        applySidebarPromptColors(normalizedFolders);
     });
 }
 
@@ -257,6 +258,22 @@ function showFolderPicker(folders, callback) {
     });
 }
 
+function applySidebarPromptColors(folders, platform = getActivePlatform()) {
+    if (!platform) return;
+
+    platform.getChatEntries().forEach(({ item, link, name }) => {
+        const group = folders.folders.find(folder =>
+            folder.prompts.some(prompt =>
+                (prompt.platform === platform.id && areSameConversationLinks(prompt.link, link))
+                || (prompt.platform === platform.id && prompt.name === name)
+            )
+        );
+        item.style.backgroundColor = group
+            ? `rgb(from ${group.color} r g b / 0.3)`
+            : '';
+    });
+}
+
 function observeSidebarPrompts() {
     const platform = getActivePlatform();
     const processSidebarPrompts = () => {
@@ -285,21 +302,10 @@ function observeSidebarPrompts() {
             });
 
             actionSlot.appendChild(folderBtn);
+        });
 
-            chrome.storage.local.get(['folders'], (data) => {
-                const folders = getFoldersOrDefault(data?.folders);
-                const group = folders.folders.find(folder =>
-                    folder.prompts.some(prompt =>
-                        (prompt.platform === platform.id && areSameConversationLinks(prompt.link, link))
-                        || (prompt.platform === platform.id && prompt.name === name)
-                    )
-                );
-                if (group) {
-                    item.style.backgroundColor = `rgb(from ${group.color} r g b / 0.3)`;
-                } else {
-                    item.style.backgroundColor = '';
-                }
-            });
+        chrome.storage.local.get(['folders'], (data) => {
+            applySidebarPromptColors(getFoldersOrDefault(data?.folders), platform);
         });
     };
 
