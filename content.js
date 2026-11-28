@@ -1,6 +1,6 @@
 function injectStyles(platform) {
     const stylesheetPaths = ['styles.css', `platforms/${platform.id}.css`];
-    Promise.all(stylesheetPaths.map(async path => {
+    return Promise.all(stylesheetPaths.map(async path => {
         const response = await fetch(chrome.runtime.getURL(path));
         if (!response.ok) {
             throw new Error(`Failed to load stylesheet: ${path} (${response.status})`);
@@ -15,9 +15,6 @@ function injectStyles(platform) {
             );
             document.head.appendChild(style);
         })
-        .catch(error => {
-            console.error('Failed to inject Prompt Organizer styles:', error);
-        });
 }
 
 function getPlatformForLink(link, platformId = null) {
@@ -348,7 +345,7 @@ function getActivePlatform() {
     return Object.values(platforms).find(platform => platform.supportsHost(window.location.hostname));
 }
 
-function renderFolders() {
+function renderFolders(animateInitialVisibility = false) {
 
     chrome.storage.local.get(['folders'], (result) => {
         let folders = getFoldersOrDefault(result?.folders);
@@ -369,7 +366,10 @@ function renderFolders() {
         foldersWrapper.innerHTML = '';
 
         foldersWrapper.id = 'db-folder-wrapper';
-        foldersWrapper.className = `db-folder-wrapper ${ folders.hidden ? '' : 'visible'}`;
+        foldersWrapper.className = 'db-folder-wrapper';
+        if (!animateInitialVisibility && !folders.hidden) {
+            foldersWrapper.classList.add('visible');
+        }
         
         const toggleFolderWrapper = document.createElement('div');
         toggleFolderWrapper.id = 'db-toggle-folder-wrapper';
@@ -382,7 +382,7 @@ function renderFolders() {
         toggleButton.type = 'button';
         toggleButton.className = 'db-folder-tab-toggle';
         toggleButton.textContent = 'Folders';
-        toggleButton.setAttribute('aria-expanded', String(foldersWrapper.classList.contains('visible')));
+        toggleButton.setAttribute('aria-expanded', String(!folders.hidden));
         toggleButton.addEventListener('click', () => {
             foldersWrapper.classList.toggle('visible');
             toggleButton.setAttribute('aria-expanded', String(foldersWrapper.classList.contains('visible')));
@@ -574,6 +574,13 @@ function renderFolders() {
         
         // sidebar.parentNode.insertBefore(foldersWrapper, sidebar);
         document.body.appendChild(foldersWrapper);
+        if (animateInitialVisibility && !folders.hidden) {
+            requestAnimationFrame(() => {
+                if (foldersWrapper.isConnected) {
+                    foldersWrapper.classList.add('visible');
+                }
+            });
+        }
         const folderListContainer = document.getElementById('db-folders-container');
         if (folderListContainer) {
             folderListContainer.scrollTop = folderScrollTop;
@@ -823,11 +830,16 @@ function startOrganizer() {
         }
     });
 
-    injectStyles(platform);
-    renderFolders();
-    injectAddToFolderButton();
-    observeSidebarPrompts();
-    observeMainThread();
+    injectStyles(platform)
+        .then(() => {
+            renderFolders(true);
+            injectAddToFolderButton();
+            observeSidebarPrompts();
+            observeMainThread();
+        })
+        .catch(error => {
+            console.error('Failed to initialize Prompt Organizer:', error);
+        });
 }
 
 startOrganizer();
