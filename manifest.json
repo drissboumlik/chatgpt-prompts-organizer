@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Prompts Organizer",
-  "version": "1.0",
+  "version": "1.1",
   "description": "A Chrome extension to organize ChatGPT, Claude, DeepSeek, and Gemini chats into folders.",
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": [
