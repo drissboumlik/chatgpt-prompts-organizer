@@ -49,28 +49,39 @@ and stylesheet there, then register both in the manifest.
 
 ### Creating folders
 
-<img src="assets/Screenshot_1.png" width="300" />
-<img src="assets/Screenshot_2.png" width="300" />
-<img src="assets/Screenshot_3.png" width="300" />
-<img src="assets/Screenshot_4.png" width="300" />
-<img src="assets/Screenshot_5.png" width="300" />
-<img src="assets/Screenshot_6.png" width="300" />
+<img src="assets/images/panel-hidden.png" width="600" />
+<img src="assets/images/panel-shown.png" width="600" />
+<img src="assets/images/create-folder-form.png" width="600" />
+<img src="assets/images/fill-form.png" width="600" />
+<img src="assets/images/preview-created-folder.png" width="600" />
 
 ---
 
 ### Add prompts to folders from chatgpt/claude sidebar
 
-<img src="assets/Screenshot_7.png" width="300" />
-<img src="assets/Screenshot_8.png" width="300" />
-<img src="assets/Screenshot_9.png" width="300" />
-<img src="assets/Screenshot_10.png" width="300" />
+<img src="assets/images/show-btn-on-chats-sidebar.png" width="600" />
+<img src="assets/images/folder-selected.png" width="600" />
+<img src="assets/images/chat-added-to-folder.png" width="600" />
 
 ---
 
 ### Add current prompt to folders
 
-<img src="assets/Screenshot_11.png" width="300" />
-<img src="assets/Screenshot_12.png" width="300" />
+<img src="assets/images/btn-add-on-current-chat.png" width="600" />
+
+---
+
+### Add prompts from ChatGPT, Claude, DeepSeek, and Gemini
+
+<img src="assets/images/add-gpt-prompt.png" width="600" />
+<img src="assets/images/add-claude-prompt.png" width="600" />
+<img src="assets/images/add-deepseek-prompt.png" width="600" />
+<img src="assets/images/add-gemini-prompt.png" width="600" />
+
+### Added prompts get background of containing folder
+
+<img src="assets/images/chat-bg-same-as-folder.png" width="600" />
+
 
 ## 🤝 Contributing
 Feel free to open issues or submit pull requests. Contributions are welcome!
